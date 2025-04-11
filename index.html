@@ -1,206 +1,173 @@
+
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Basic Pong HTML Game</title>
+    <title>Pong Game with Score</title>
     <meta charset="UTF-8" />
     <style>
-      html,
-      body {
+      html, body {
         height: 100%;
         margin: 0;
       }
-
       body {
         background: rgb(0, 127, 238);
         display: flex;
         align-items: center;
         justify-content: center;
+        flex-direction: column;
+      }
+      #winnerScreen, #startScreen {
+        display: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        font-size: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+      }
+      .button {
+        margin-top: 20px;
+        font-size: 20px;
+        padding: 10px 20px;
+        cursor: pointer;
       }
     </style>
   </head>
   <body>
     <canvas width="750" height="585" id="game"></canvas>
+    <div id="startScreen">
+      <span>Select Ball Speed</span>
+      <button class="button" onclick="startGame(3)">Easy</button>
+      <button class="button" onclick="startGame(5)">Medium</button>
+      <button class="button" onclick="startGame(7)">Hard</button>
+      <button class="button" onclick="startGame(10)">Insane</button>
+    </div>
+    <div id="winnerScreen">
+      <span id="winnerText"></span>
+      <button class="button" id="restartButton">Restart Game</button>
+    </div>
     <script>
       const canvas = document.getElementById("game");
       const context = canvas.getContext("2d");
       const grid = 15;
-      const paddleHeight = grid * 5; // 80
+      const paddleHeight = grid * 5;
       const maxPaddleY = canvas.height - grid - paddleHeight;
+      let paddleSpeed = 6;
+      let ballSpeed;
+      let leftScore = 0;
+      let rightScore = 0;
+      const winningScore = 11;
+      let gameOver = false;
+      const winnerScreen = document.getElementById("winnerScreen");
+      const startScreen = document.getElementById("startScreen");
+      const winnerText = document.getElementById("winnerText");
+      const restartButton = document.getElementById("restartButton");
+      startScreen.style.display = "flex";
 
-      var paddleSpeed = 6;
-      var ballSpeed = 5;
+      const leftPaddle = { x: grid * 2, y: canvas.height / 2 - paddleHeight / 2, width: grid, height: paddleHeight, dy: 0 };
+      const rightPaddle = { x: canvas.width - grid * 3, y: canvas.height / 2 - paddleHeight / 2, width: grid, height: paddleHeight, dy: 0 };
+      let ball;
 
-      const leftPaddle = {
-        // start in the middle of the game on the left side
-        x: grid * 2,
-        y: canvas.height / 2 - paddleHeight / 2,
-        width: grid,
-        height: paddleHeight,
-
-        // paddle velocity
-        dy: 0,
-      };
-      const rightPaddle = {
-        // start in the middle of the game on the right side
-        x: canvas.width - grid * 3,
-        y: canvas.height / 2 - paddleHeight / 2,
-        width: grid,
-        height: paddleHeight,
-
-        // paddle velocity
-        dy: 0,
-      };
-      const ball = {
-        // start in the middle of the game
-        x: canvas.width / 2,
-        y: canvas.height / 2,
-        width: grid,
-        height: grid,
-
-        // keep track of when need to reset the ball position
-        resetting: false,
-
-        // ball velocity (start going to the top-right corner)
-        dx: ballSpeed,
-        dy: -ballSpeed,
-      };
-
-      // check for collision between two objects using axis-aligned bounding box (AABB)
-      // @see https://developer.mozilla.org/en-US/docs/Games/Techniques/2D_collision_detection
-      function collides(obj1, obj2) {
-        return (
-          obj1.x < obj2.x + obj2.width &&
-          obj1.x + obj1.width > obj2.x &&
-          obj1.y < obj2.y + obj2.height &&
-          obj1.y + obj1.height > obj2.y
-        );
+      function startGame(speed) {
+        ballSpeed = speed;
+        resetBall();
+        startScreen.style.display = "none";
+        requestAnimationFrame(loop);
       }
 
-      // game loop
+      function collides(obj1, obj2) {
+        return obj1.x < obj2.x + obj2.width && obj1.x + obj1.width > obj2.x && obj1.y < obj2.y + obj2.height && obj1.y + obj1.height > obj2.y;
+      }
+     
+      function resetBall() {
+        if (gameOver) return;
+        ball = { x: canvas.width / 2, y: canvas.height / 2, width: grid, height: grid, dx: ballSpeed * (Math.random() > 0.5 ? 1 : -1), dy: ballSpeed * (Math.random() > 0.5 ? 1 : -1) };
+      }
+     
+      function checkWinner() {
+        if (leftScore >= winningScore) {
+          showWinner("Left Player Wins!");
+        } else if (rightScore >= winningScore) {
+          showWinner("Right Player Wins!");
+        }
+      }
+     
+      function showWinner(text) {
+        gameOver = true;
+        winnerText.textContent = text;
+        winnerScreen.style.display = "flex";
+      }
+     
+      function restartGame() {
+        leftScore = 0;
+        rightScore = 0;
+        gameOver = false;
+        winnerScreen.style.display = "none";
+        startScreen.style.display = "flex";
+      }
+     
+      restartButton.addEventListener("click", restartGame);
+     
       function loop() {
+        if (gameOver) return;
         requestAnimationFrame(loop);
         context.clearRect(0, 0, canvas.width, canvas.height);
-
-        // move paddles by their velocity
+       
         leftPaddle.y += leftPaddle.dy;
         rightPaddle.y += rightPaddle.dy;
-
-        // prevent paddles from going through walls
-        if (leftPaddle.y < grid) {
-          leftPaddle.y = grid;
-        } else if (leftPaddle.y > maxPaddleY) {
-          leftPaddle.y = maxPaddleY;
-        }
-
-        if (rightPaddle.y < grid) {
-          rightPaddle.y = grid;
-        } else if (rightPaddle.y > maxPaddleY) {
-          rightPaddle.y = maxPaddleY;
-        }
-
-        // draw paddles
+       
+        leftPaddle.y = Math.max(grid, Math.min(leftPaddle.y, maxPaddleY));
+        rightPaddle.y = Math.max(grid, Math.min(rightPaddle.y, maxPaddleY));
+       
         context.fillStyle = "#051363";
-        context.fillRect(
-          leftPaddle.x,
-          leftPaddle.y,
-          leftPaddle.width,
-          leftPaddle.height
-        );
-        context.fillRect(
-          rightPaddle.x,
-          rightPaddle.y,
-          rightPaddle.width,
-          rightPaddle.height
-        );
-
-        // move ball by its velocity
+        context.fillRect(leftPaddle.x, leftPaddle.y, leftPaddle.width, leftPaddle.height);
+        context.fillRect(rightPaddle.x, rightPaddle.y, rightPaddle.width, rightPaddle.height);
+       
         ball.x += ball.dx;
         ball.y += ball.dy;
-
-        // prevent ball from going through walls by changing its velocity
-        if (ball.y < grid) {
-          ball.y = grid;
-          ball.dy *= -1;
-        } else if (ball.y + grid > canvas.height - grid) {
-          ball.y = canvas.height - grid * 2;
+       
+        if (ball.y < grid || ball.y + grid > canvas.height - grid) {
           ball.dy *= -1;
         }
-
-        // reset ball if it goes past paddle (but only if we haven't already done so)
-        if ((ball.x < 0 || ball.x > canvas.width) && !ball.resetting) {
-          ball.resetting = true;
-
-          // give some time for the player to recover before launching the ball again
-          setTimeout(() => {
-            ball.resetting = false;
-            ball.x = canvas.width / 2;
-            ball.y = canvas.height / 2;
-          }, 400);
+       
+        if (ball.x < 0 || ball.x > canvas.width) {
+          resetBall();
         }
-
-        // check to see if ball collides with paddle. if they do change x velocity
+       
         if (collides(ball, leftPaddle)) {
           ball.dx *= -1;
-
-          // move ball next to the paddle otherwise the collision will happen again
-          // in the next frame
-          ball.x = leftPaddle.x + leftPaddle.width;
+          leftScore++;
+          checkWinner();
         } else if (collides(ball, rightPaddle)) {
           ball.dx *= -1;
-
-          // move ball next to the paddle otherwise the collision will happen again
-          // in the next frame
-          ball.x = rightPaddle.x - ball.width;
+          rightScore++;
+          checkWinner();
         }
-
-        // draw ball
+       
         context.fillRect(ball.x, ball.y, ball.width, ball.height);
-
-        // draw walls
-        context.fillStyle = "lightgrey";
-        context.fillRect(0, 0, canvas.width, grid);
-        context.fillRect(0, canvas.height - grid, canvas.width, canvas.height);
-
-        // draw dotted line down the middle
-        for (let i = grid; i < canvas.height - grid; i += grid * 2) {
-          context.fillRect(canvas.width / 2 - grid / 2, i, grid, grid);
-        }
+        context.fillStyle = "white";
+        context.font = "30px Arial";
+        context.fillText(leftScore, canvas.width / 4, 50);
+        context.fillText(rightScore, (canvas.width * 3) / 4, 50);
       }
-
-      // listen to keyboard events to move the paddles
+     
       document.addEventListener("keydown", function (e) {
-        // up arrow key
-        if (e.which === 38) {
-          rightPaddle.dy = -paddleSpeed;
-        }
-        // down arrow key
-        else if (e.which === 40) {
-          rightPaddle.dy = paddleSpeed;
-        }
-
-        // w key
-        if (e.which === 87) {
-          leftPaddle.dy = -paddleSpeed;
-        }
-        // a key
-        else if (e.which === 83) {
-          leftPaddle.dy = paddleSpeed;
-        }
+        if (e.which === 38) rightPaddle.dy = -paddleSpeed;
+        else if (e.which === 40) rightPaddle.dy = paddleSpeed;
+        if (e.which === 87) leftPaddle.dy = -paddleSpeed;
+        else if (e.which === 83) leftPaddle.dy = paddleSpeed;
       });
-
-      // listen to keyboard events to stop the paddle if key is released
+     
       document.addEventListener("keyup", function (e) {
-        if (e.which === 38 || e.which === 40) {
-          rightPaddle.dy = 0;
-        }
-
-        if (e.which === 83 || e.which === 87) {
-          leftPaddle.dy = 0;
-        }
+        if (e.which === 38 || e.which === 40) rightPaddle.dy = 0;
+        if (e.which === 83 || e.which === 87) leftPaddle.dy = 0;
       });
-
-      // start the game
-      requestAnimationFrame(loop);
     </script>
   </body>
 </html>
