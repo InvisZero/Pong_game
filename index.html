@@ -1,173 +1,31 @@
-
 <!DOCTYPE html>
-<html>
-  <head>
-    <title>Pong Game with Score</title>
-    <meta charset="UTF-8" />
-    <style>
-      html, body {
-        height: 100%;
-        margin: 0;
-      }
-      body {
-        background: rgb(0, 127, 238);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-      }
-      #winnerScreen, #startScreen {
-        display: none;
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.8);
-        color: white;
-        font-size: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-      }
-      .button {
-        margin-top: 20px;
-        font-size: 20px;
-        padding: 10px 20px;
-        cursor: pointer;
-      }
-    </style>
-  </head>
-  <body>
-    <canvas width="750" height="585" id="game"></canvas>
-    <div id="startScreen">
-      <span>Select Ball Speed</span>
-      <button class="button" onclick="startGame(3)">Easy</button>
-      <button class="button" onclick="startGame(5)">Medium</button>
-      <button class="button" onclick="startGame(7)">Hard</button>
-      <button class="button" onclick="startGame(10)">Insane</button>
-    </div>
-    <div id="winnerScreen">
-      <span id="winnerText"></span>
-      <button class="button" id="restartButton">Restart Game</button>
-    </div>
-    <script>
-      const canvas = document.getElementById("game");
-      const context = canvas.getContext("2d");
-      const grid = 15;
-      const paddleHeight = grid * 5;
-      const maxPaddleY = canvas.height - grid - paddleHeight;
-      let paddleSpeed = 6;
-      let ballSpeed;
-      let leftScore = 0;
-      let rightScore = 0;
-      const winningScore = 11;
-      let gameOver = false;
-      const winnerScreen = document.getElementById("winnerScreen");
-      const startScreen = document.getElementById("startScreen");
-      const winnerText = document.getElementById("winnerText");
-      const restartButton = document.getElementById("restartButton");
-      startScreen.style.display = "flex";
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Pong Game</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
 
-      const leftPaddle = { x: grid * 2, y: canvas.height / 2 - paddleHeight / 2, width: grid, height: paddleHeight, dy: 0 };
-      const rightPaddle = { x: canvas.width - grid * 3, y: canvas.height / 2 - paddleHeight / 2, width: grid, height: paddleHeight, dy: 0 };
-      let ball;
+<canvas id="game" width="750" height="585"></canvas>
 
-      function startGame(speed) {
-        ballSpeed = speed;
-        resetBall();
-        startScreen.style.display = "none";
-        requestAnimationFrame(loop);
-      }
+<div id="startScreen">
+  <h2>Select Game Mode</h2>
+  <button class="button" onclick="selectMode('ai')">Single Player (vs AI)</button>
+  <button class="button" onclick="selectMode('pvp')">Two Player (PvP)</button>
 
-      function collides(obj1, obj2) {
-        return obj1.x < obj2.x + obj2.width && obj1.x + obj1.width > obj2.x && obj1.y < obj2.y + obj2.height && obj1.y + obj1.height > obj2.y;
-      }
-     
-      function resetBall() {
-        if (gameOver) return;
-        ball = { x: canvas.width / 2, y: canvas.height / 2, width: grid, height: grid, dx: ballSpeed * (Math.random() > 0.5 ? 1 : -1), dy: ballSpeed * (Math.random() > 0.5 ? 1 : -1) };
-      }
-     
-      function checkWinner() {
-        if (leftScore >= winningScore) {
-          showWinner("Left Player Wins!");
-        } else if (rightScore >= winningScore) {
-          showWinner("Right Player Wins!");
-        }
-      }
-     
-      function showWinner(text) {
-        gameOver = true;
-        winnerText.textContent = text;
-        winnerScreen.style.display = "flex";
-      }
-     
-      function restartGame() {
-        leftScore = 0;
-        rightScore = 0;
-        gameOver = false;
-        winnerScreen.style.display = "none";
-        startScreen.style.display = "flex";
-      }
-     
-      restartButton.addEventListener("click", restartGame);
-     
-      function loop() {
-        if (gameOver) return;
-        requestAnimationFrame(loop);
-        context.clearRect(0, 0, canvas.width, canvas.height);
-       
-        leftPaddle.y += leftPaddle.dy;
-        rightPaddle.y += rightPaddle.dy;
-       
-        leftPaddle.y = Math.max(grid, Math.min(leftPaddle.y, maxPaddleY));
-        rightPaddle.y = Math.max(grid, Math.min(rightPaddle.y, maxPaddleY));
-       
-        context.fillStyle = "#051363";
-        context.fillRect(leftPaddle.x, leftPaddle.y, leftPaddle.width, leftPaddle.height);
-        context.fillRect(rightPaddle.x, rightPaddle.y, rightPaddle.width, rightPaddle.height);
-       
-        ball.x += ball.dx;
-        ball.y += ball.dy;
-       
-        if (ball.y < grid || ball.y + grid > canvas.height - grid) {
-          ball.dy *= -1;
-        }
-       
-        if (ball.x < 0 || ball.x > canvas.width) {
-          resetBall();
-        }
-       
-        if (collides(ball, leftPaddle)) {
-          ball.dx *= -1;
-          leftScore++;
-          checkWinner();
-        } else if (collides(ball, rightPaddle)) {
-          ball.dx *= -1;
-          rightScore++;
-          checkWinner();
-        }
-       
-        context.fillRect(ball.x, ball.y, ball.width, ball.height);
-        context.fillStyle = "white";
-        context.font = "30px Arial";
-        context.fillText(leftScore, canvas.width / 4, 50);
-        context.fillText(rightScore, (canvas.width * 3) / 4, 50);
-      }
-     
-      document.addEventListener("keydown", function (e) {
-        if (e.which === 38) rightPaddle.dy = -paddleSpeed;
-        else if (e.which === 40) rightPaddle.dy = paddleSpeed;
-        if (e.which === 87) leftPaddle.dy = -paddleSpeed;
-        else if (e.which === 83) leftPaddle.dy = paddleSpeed;
-      });
-     
-      document.addEventListener("keyup", function (e) {
-        if (e.which === 38 || e.which === 40) rightPaddle.dy = 0;
-        if (e.which === 83 || e.which === 87) leftPaddle.dy = 0;
-      });
-    </script>
-  </body>
+  <h2>Select Ball Speed</h2>
+  <button class="button" onclick="startGame(3)">Easy</button>
+  <button class="button" onclick="startGame(5)">Medium</button>
+  <button class="button" onclick="startGame(7)">Hard</button>
+  <button class="button" onclick="startGame(10)">Insane</button>
+</div>
+
+<div id="winnerScreen">
+  <span id="winnerText"></span>
+  <button class="button" onclick="restartGame()">Restart</button>
+</div>
+
+<script src="script.js"></script>
+</body>
 </html>
